@@ -129,7 +129,7 @@ mongoose.connect(process.env.MONGODB_CONNECT_URI, { useNewUrlParser: true, useUn
     );
     eventEmitter.on('data', (userId, message) => {
         console.log('Connected user:', userId);
-        if (!wsmap[userId] && wsmap[userId].readyState !== WebSocket.OPEN) {
+        if (wsmap[userId] && wsmap[userId].readyState !== undefined && wsmap[userId].readyState !== WebSocket.OPEN) {
           console.log('User not connected');
           return;
         }
