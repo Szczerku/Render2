@@ -77,7 +77,7 @@ $(document).ready(async function () {
     // const lineChart3 = configureChart(ctx3, "Voltage 3", "rgba(31,53,235,0.5)", "rgb(31, 53, 235)");
 // Pobierz aktualny adres URL
 
-    const ws = new WebSocket('ws://mszczerkovski.onrender.com/ws');   
+    const ws = new WebSocket('https://mszczerkovski.onrender.com/ws');   
     
     
     // Obsługa zdarzenia 'open', które zostanie wywołane, gdy połączenie z serwerem zostanie nawiązane
