@@ -49,7 +49,7 @@ exports.getConnect = async (req, res, next) => {
             console.log('Disconnected from MQTT broker');
             sensor.connected = false;
             await sensor.save();
-            client.end();
+            client.endAsync();
         };
 
         ['disconnect', 'close', 'reconnect', 'offline'].forEach(event => {
