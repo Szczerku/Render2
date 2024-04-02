@@ -10,7 +10,7 @@ const user = require('../models/user');
 
 const router = express.Router();
 
-router.get('/ws', (req, res, next) => {
+router.get('/ws', isAuth, (req, res, next) => {
     res.render('user/dashboard', {
         pageTitle: 'WebSocket',
         path: '/ws'

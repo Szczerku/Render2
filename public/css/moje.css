@@ -40,7 +40,7 @@ header{
 }
 
 .nav-links li a{
-  display: flex;
+  display: flex;/*zbedne?*/
   color: white;
   border-radius: 50px;
   transition: 0.2s;
@@ -161,14 +161,15 @@ header{
 }
 
 
+body {
+  background-color: #0f1f5a;
+}
+
 .container1{
-  /* margin-left: 5%;
-  margin-right: 5%; */
+  height: 100%;
   background-image: url('/images/ptimage.jpg');
   background-size: cover;
   background-position: center;
-  height: 100vh;
-  /*opacity: 0.85;*/
 }
 
 .option-bar {
@@ -280,6 +281,7 @@ header{
 }
 
 .chartsbox{
+  display: flex;
   margin-left: 20px;
   text-align: center;
   justify-content: center;
@@ -295,11 +297,6 @@ header{
   margin: 5%;
   width: 90%; 
   height: 40vh;
-}
-
-.emptyblock{
-  border-radius: 5px;
-  box-shadow: 0 0 7px #666565;
 }
 
 footer {
