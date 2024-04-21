@@ -26,10 +26,10 @@ exports.getConnect = async (req, res, next) => {
             host: addresIp,
             port: port,
             protocol: 'mqtts',
-            username: 'user1',
-            //username: 'Yousef',
-            password: 'qwerty123456',
-            //password: 'Yousef123'
+            //username: 'user1',
+            username: 'Yousef',
+            //password: 'qwerty123456',
+            password: 'Yousef123'
         };
 
         const client = mqtt.connect(options);
