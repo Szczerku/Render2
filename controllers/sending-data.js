@@ -7,6 +7,8 @@ const {
     onMessage,
 } = require('../handlers/MQTT');
 
+const autheventEmitter = require('./auth').getEventEmitter();
+
 exports.getConnect = async (req, res, next) => {
     try {
         const senId = req.params.sensorId;
@@ -61,6 +63,8 @@ exports.getConnect = async (req, res, next) => {
                     });
             }
         }
+
+        autheventEmitter.on('userLogout', handleConnectionChange);
 
         // Reakcja na błąd
         client.on('error', (error) => {

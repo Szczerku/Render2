@@ -6,6 +6,9 @@ const User = require('../models/user');
 const Sensor = require('../models/sensor');
 const { validationResult } = require('express-validator');
 
+const { EventEmitter } = require('events');
+const autheventEmitter = new EventEmitter();
+
 exports.getLogin = (req, res, next) => {
   let message = req.flash('error');
   if (message.length > 0) {
@@ -167,6 +170,8 @@ exports.postLogout = async (req, res, next) => {
           await sensor.save();
       }
       console.log('Czujniki zaktualizowane');
+      autheventEmitter.emit('userLogout');
+      console.log('Zdarzenie userLogout wyemitowane');
       res.redirect('/');
   } catch (err) {
       console.error(err);
@@ -222,3 +227,6 @@ exports.postReset = (req, res, next) => {
     });
   });
 }
+
+
+exports.getEventEmitter = () => autheventEmitter;

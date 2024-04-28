@@ -34,10 +34,15 @@ function onMessage(client, websocket, userId){
     });
 }
 
+function closeClient(client) {
+    client.end();
+}
+
 
 module.exports = {
     mqttConnection,
     onConnect,
     onSubscribe,
     onMessage,
+    closeClient
 };
