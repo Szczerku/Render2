@@ -19,15 +19,28 @@ $(document).ready(async function () {
                 ]
             },
             options: {
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'white'
+                        }
+                    }
+                },
                 scales: {
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            color: 'white'
                         }
                     },
                     y: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            color: 'white'
                         }
                     }
                 },
@@ -84,14 +97,13 @@ $(document).ready(async function () {
     ws.onopen = () => {
         console.log('Connected TO WS SERVER');
     };
-      
+    
     ws.onmessage = (event) => {
         console.log('Message from server:', event.data);
         const data = JSON.parse(event.data.trim()); // Parsowanie danych z JSON
         console.log('Message from server:', data);
         var exampleMsg = {
             date: new Date().toLocaleTimeString(),
-            //value: parseInt(data.message)
             value: parseFloat(data["Sensor Value"])
         };
         handleSocketData(lineChart1, exampleMsg);

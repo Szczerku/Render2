@@ -1,19 +1,19 @@
-const { EventEmitter } = require('events');
 const Sensor = require('../models/sensor');
-const mqtt = require('mqtt');
-const user = require('../models/user');
-const autheventEmitter = require('./auth').getEventEmitter();
-const eventEmitter = new EventEmitter();
+const websocket = require('../handlers/WebSocket');
+const {
+    mqttConnection,
+    onConnect,
+    onSubscribe,
+    onMessage,
+} = require('../handlers/MQTT');
 
 exports.getConnect = async (req, res, next) => {
     try {
         const senId = req.params.sensorId;
         const sensor = await Sensor.findById(senId);
-
         if (!sensor) {
             throw new Error('Sensor not found.');
         }
-
         if (sensor.userId.toString() !== req.user._id.toString()) {
             return res.status(403).send('Unauthorized');
         }
@@ -32,45 +32,56 @@ exports.getConnect = async (req, res, next) => {
             password: 'Yousef123'
         };
 
-        const client = mqtt.connect(options);
+        const client = mqttConnection(options);
 
         client.on('connect', async () => {
-            console.log('Connected to MQTT broker');
-            sensor.connected = true;
-            await sensor.save();
-            client.subscribe(topic, (err) => {
-                if (err) {
-                    console.error('Error subscribing to topic:', err);
-                } else {
-                    console.log('Subscribed to topic:', topic);
-                }
-            });
+            onConnect(client, sensor);
+            await onSubscribe(client, topic);
         });
 
-        const handleDisconnect = async () => {
-            console.log('Disconnected from MQTT broker');
-            sensor.connected = false;
-            await sensor.save();
-            client.endAsync();
-        };
+        onMessage(client, websocket, userId);
+        
+        // Flaga śledząca czy zapis jest w trakcie
+        let isSaving = false;
 
-        ['disconnect', 'close', 'reconnect', 'offline'].forEach(event => {
-            client.on(event, handleDisconnect);
-        });
+        // Funkcja obsługująca błąd i rozłączenie
+        function handleConnectionChange() {
+            if (!isSaving) {
+                isSaving = true;
+                sensor.connected = false;
+                sensor.save()
+                    .then(() => {
+                        isSaving = false;
+                        client.end();
+                    })
+                    .catch((saveError) => {
+                        isSaving = false;
+                        console.error('Error while saving sensor:', saveError);
+                        client.end();
+                    });
+            }
+        }
 
-        client.on('message', (receivedTopic, message) => {
-            console.log('Received message:', JSON.parse(message.toString()));
-            eventEmitter.emit('data', userId, JSON.parse(message.toString()));
-        });
-
+        // Reakcja na błąd
         client.on('error', (error) => {
             console.error('Error:', error);
-            handleDisconnect();
+            handleConnectionChange();
         });
 
-        autheventEmitter.on('userLogout', handleDisconnect);
+        // Reakcja na zamknięcie połączenia
+        client.on('close', () => {
+            console.log('Disconnected from MQTT broker');
+            handleConnectionChange();
+        });
+
+        // Reakcja na rozłączenie
+        client.on('disconnect', () => {
+            console.log('Disconnected from MQTT broker');
+            handleConnectionChange();
+        });
 
         res.redirect('/ws');
+
     } catch (err) {
         console.error('Error:', err);
         const error = new Error(err.message || 'Internal Server Error');
@@ -78,5 +89,3 @@ exports.getConnect = async (req, res, next) => {
         return next(error);
     }
 };
-
-module.exports.eventEmitter = eventEmitter;

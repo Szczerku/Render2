@@ -1,13 +1,5 @@
 const { validationResult } = require('express-validator');
-
 const Sensor = require('../models/sensor');
-const user = require('../models/user');
-
-const mqtt = require('mqtt');
-const mqttConnection = require('mqtt-connection');
-const WebSocket = require('ws');
-
-
 
 //Start Page
 exports.getIndex = (req, res, next) => {
