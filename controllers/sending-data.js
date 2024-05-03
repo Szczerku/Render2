@@ -39,9 +39,10 @@ exports.getConnect = async (req, res, next) => {
         client.on('connect', async () => {
             onConnect(client, sensor);
             await onSubscribe(client, topic);
+            onMessage(client, websocket, userId);
         });
 
-        onMessage(client, websocket, userId);
+        
         
         // Flaga śledząca czy zapis jest w trakcie
         let isSaving = false;
