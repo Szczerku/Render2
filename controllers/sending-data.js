@@ -72,7 +72,7 @@ exports.getConnect = async (req, res, next) => {
             handleDisconnect();
         });
 
-        autheventEmitter.on('userLogout', handleConnectionChange);
+        autheventEmitter.on('userLogout', handleDisconnect);
 
 
     
