@@ -44,15 +44,23 @@ exports.getConnect = async (req, res, next) => {
         }); 
         // Flaga śledząca czy zapis jest w trakcie
         const handleDisconnect = async () => {
+            if (!sensor.connected) return; // Dodaj warunek, aby uniknąć wielokrotnego wywołania
             console.log('Disconnected from MQTT broker');
             sensor.connected = false;
-            await sensor.save();
-            client.endAsync();
+            try {
+                await sensor.save();
+            } catch (saveError) {
+                console.error('Error while saving sensor:', saveError);
+            }
+            client.end();
         };
         
-        ['disconnect', 'offline', 'close', 'reconnect'].forEach((event) => {
-            client.on(event, handleDisconnect);
-        });
+        // Usuń obsługę wielokrotnych zdarzeń
+        client.on('disconnect', handleDisconnect);
+        client.on('offline', handleDisconnect);
+        client.on('close', handleDisconnect);
+        client.on('reconnect', handleDisconnect);
+        
 
         client.on('message', (receivedTopic, message) => {
             console.log('Received message:', JSON.parse(message.toString()));
