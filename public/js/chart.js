@@ -40,8 +40,12 @@ $(document).ready(async function () {
                             display: false
                         },
                         ticks: {
-                            color: 'white'
-                        }
+                            color: 'white',
+                            stepSize: 0.1
+
+                        },
+                        //beginAtZero: true
+                        
                     }
                 },
                 responsive: true,
@@ -104,7 +108,7 @@ $(document).ready(async function () {
         console.log('Message from server:', data);
         var exampleMsg = {
             date: new Date().toLocaleTimeString(),
-            value: parseFloat(data["Sensor Value"])
+            value: parseFloat(data["Sensor Value"]).toFixed(1)
         };
         handleSocketData(lineChart1, exampleMsg);
     };
