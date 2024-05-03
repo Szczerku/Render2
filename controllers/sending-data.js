@@ -43,32 +43,25 @@ exports.getConnect = async (req, res, next) => {
             });
         }); 
         // Flaga śledząca czy zapis jest w trakcie
-        let isSaving = false;
-
-        // Funkcja obsługująca błąd i rozłączenie
-        function handleConnectionChange() {
-            if (!isSaving) {
-                isSaving = true;
-                sensor.connected = false;
-                sensor.save()
-                    .then(() => {
-                        isSaving = false;
-                        client.end();
-                    })
-                    .catch((saveError) => {
-                        isSaving = false;
-                        console.error('Error while saving sensor:', saveError);
-                        client.end();
-                    });
-            }
-        }
-        ['disconnect', 'error', 'close', 'reconnect'].forEach((event) => {
-            client.on(event, handleConnectionChange);
+        const handleDisconnect = async () => {
+            console.log('Disconnected from MQTT broker');
+            sensor.connected = false;
+            await sensor.save();
+            client.endAsync();
+        };
+        
+        ['disconnect', 'offline', 'close', 'reconnect'].forEach((event) => {
+            client.on(event, handleDisconnect);
         });
 
         client.on('message', (receivedTopic, message) => {
             console.log('Received message:', JSON.parse(message.toString()));
             websocket.sendData(userId, JSON.parse(message.toString()));
+        });
+
+        client.on('error', (error) => {
+            console.error('Error:', error);
+            handleDisconnect();
         });
 
         autheventEmitter.on('userLogout', handleConnectionChange);
