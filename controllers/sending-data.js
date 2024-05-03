@@ -78,11 +78,6 @@ exports.getConnect = async (req, res, next) => {
             handleConnectionChange();
         });
 
-        // Reakcja na rozłączenie
-        client.on('disconnect', () => {
-            console.log('Disconnected from MQTT broker-DISCONECT');
-            handleConnectionChange();
-        });
 
         client.on('offline', () => {
             console.log('Disconnected from MQTT broker-OFFLINE');
@@ -99,8 +94,7 @@ exports.getConnect = async (req, res, next) => {
             handleConnectionChange();
         });
 
-        
-
+    
         res.redirect('/ws');
 
     } catch (err) {
