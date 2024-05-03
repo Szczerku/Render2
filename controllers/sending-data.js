@@ -74,15 +74,32 @@ exports.getConnect = async (req, res, next) => {
 
         // Reakcja na zamknięcie połączenia
         client.on('close', () => {
-            console.log('Disconnected from MQTT broker');
+            console.log('Disconnected from MQTT broker-CLOSE');
             handleConnectionChange();
         });
 
         // Reakcja na rozłączenie
         client.on('disconnect', () => {
-            console.log('Disconnected from MQTT broker');
+            console.log('Disconnected from MQTT broker-DISCONECT');
             handleConnectionChange();
         });
+
+        client.on('offline', () => {
+            console.log('Disconnected from MQTT broker-OFFLINE');
+            handleConnectionChange();
+        });
+
+        client.on('end', () => {
+            console.log('Disconnected from MQTT broker-END');
+            handleConnectionChange();
+        });
+
+        client.on('reconnect', () => {
+            console.log('Disconnected from MQTT broker-RECONNECT');
+            handleConnectionChange();
+        });
+
+        
 
         res.redirect('/ws');
 
