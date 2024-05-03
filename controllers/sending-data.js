@@ -1,12 +1,6 @@
 const Sensor = require('../models/sensor');
 const websocket = require('../handlers/WebSocket');
-const {
-    mqttConnection,
-    onConnect,
-    onSubscribe,
-    onMessage,
-} = require('../handlers/MQTT');
-
+const mqtt = require('mqtt');
 const autheventEmitter = require('./auth').getEventEmitter();
 
 exports.getConnect = async (req, res, next) => {
@@ -34,15 +28,20 @@ exports.getConnect = async (req, res, next) => {
             password: 'Yousef123'
         };
 
-        const client = mqttConnection(options);
+        const client = mqtt.connect(options);
 
         client.on('connect', async () => {
-            onConnect(client, sensor);
-            await onSubscribe(client, topic);
-        });
-
-        onMessage(client, websocket, userId);
-        
+            console.log('Connected to MQTT broker');
+            sensor.connected = true;
+            await sensor.save();
+            client.subscribe(topic, (err) => {
+                if (err) {
+                    console.error('Error subscribing to topic:', err);
+                } else {
+                    console.log('Subscribed to topic:', topic);
+                }
+            });
+        }); 
         // Flaga śledząca czy zapis jest w trakcie
         let isSaving = false;
 
@@ -63,41 +62,17 @@ exports.getConnect = async (req, res, next) => {
                     });
             }
         }
+        ['disconnect', 'error', 'close', 'reconnect'].forEach((event) => {
+            client.on(event, handleConnectionChange);
+        });
+
+        client.on('message', (receivedTopic, message) => {
+            console.log('Received message:', JSON.parse(message.toString()));
+            websocket.sendData(userId, JSON.parse(message.toString()));
+        });
 
         autheventEmitter.on('userLogout', handleConnectionChange);
 
-        // Reakcja na błąd
-        client.on('error', (error) => {
-            console.error('Error:', error);
-            handleConnectionChange();
-        });
-
-        // Reakcja na zamknięcie połączenia
-        client.on('close', () => {
-            console.log('Disconnected from MQTT broker-CLOSE');
-            handleConnectionChange();
-        });
-
-        // Reakcja na rozłączenie
-        client.on('disconnect', () => {
-            console.log('Disconnected from MQTT broker-DISCONECT');
-            handleConnectionChange();
-        });
-
-        client.on('offline', () => {
-            console.log('Disconnected from MQTT broker-OFFLINE');
-            handleConnectionChange();
-        });
-
-        client.on('end', () => {
-            console.log('Disconnected from MQTT broker-END');
-            handleConnectionChange();
-        });
-
-        client.on('reconnect', () => {
-            console.log('Disconnected from MQTT broker-RECONNECT');
-            handleConnectionChange();
-        });
 
     
         res.redirect('/ws');
