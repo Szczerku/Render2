@@ -1,6 +1,12 @@
 const Sensor = require('../models/sensor');
 const websocket = require('../handlers/WebSocket');
-const mqtt = require('mqtt');
+const {
+    mqttConnection,
+    onConnect,
+    onSubscribe,
+    onMessage,
+} = require('../handlers/MQTT');
+
 const autheventEmitter = require('./auth').getEventEmitter();
 
 exports.getConnect = async (req, res, next) => {
@@ -28,52 +34,70 @@ exports.getConnect = async (req, res, next) => {
             password: 'Yousef123'
         };
 
-        const client = mqtt.connect(options);
+        const client = mqttConnection(options);
 
         client.on('connect', async () => {
-            console.log('Connected to MQTT broker');
-            sensor.connected = true;
-            await sensor.save();
-            client.subscribe(topic, (err) => {
-                if (err) {
-                    console.error('Error subscribing to topic:', err);
-                } else {
-                    console.log('Subscribed to topic:', topic);
-                }
-            });
-        }); 
-        // Flaga śledząca czy zapis jest w trakcie
-        const handleDisconnect = async () => {
-            if (!sensor.connected) return; // Dodaj warunek, aby uniknąć wielokrotnego wywołania
-            console.log('Disconnected from MQTT broker');
-            sensor.connected = false;
-            try {
-                await sensor.save();
-            } catch (saveError) {
-                console.error('Error while saving sensor:', saveError);
-            }
-            client.end();
-        };
-        
-        // Usuń obsługę wielokrotnych zdarzeń
-        client.on('disconnect', handleDisconnect);
-        client.on('offline', handleDisconnect);
-        client.on('close', handleDisconnect);
-        client.on('reconnect', handleDisconnect);
-        
-
-        client.on('message', (receivedTopic, message) => {
-            console.log('Received message:', JSON.parse(message.toString()));
-            websocket.sendData(userId, JSON.parse(message.toString()));
+            onConnect(client, sensor);
+            await onSubscribe(client, topic);
         });
 
+        onMessage(client, websocket, userId);
+        
+        // Flaga śledząca czy zapis jest w trakcie
+        let isSaving = false;
+
+        // Funkcja obsługująca błąd i rozłączenie
+        function handleConnectionChange() {
+            if (!isSaving) {
+                isSaving = true;
+                sensor.connected = false;
+                sensor.save()
+                    .then(() => {
+                        isSaving = false;
+                        client.end();
+                    })
+                    .catch((saveError) => {
+                        isSaving = false;
+                        console.error('Error while saving sensor:', saveError);
+                        client.end();
+                    });
+            }
+        }
+
+        autheventEmitter.on('userLogout', handleConnectionChange);
+
+        // Reakcja na błąd
         client.on('error', (error) => {
             console.error('Error:', error);
-            handleDisconnect();
+            handleConnectionChange();
         });
 
-        autheventEmitter.on('userLogout', handleDisconnect);
+        // Reakcja na zamknięcie połączenia
+        client.on('close', () => {
+            console.log('Disconnected from MQTT broker-CLOSE');
+            handleConnectionChange();
+        });
 
+        // Reakcja na rozłączenie
+        client.on('disconnect', () => {
+            console.log('Disconnected from MQTT broker-DISCONECT');
+            handleConnectionChange();
+        });
+
+        client.on('offline', () => {
+            console.log('Disconnected from MQTT broker-OFFLINE');
+            handleConnectionChange();
+        });
+
+        client.on('end', () => {
+            console.log('Disconnected from MQTT broker-END');
+            handleConnectionChange();
+        });
+
+        client.on('reconnect', () => {
+            console.log('Disconnected from MQTT broker-RECONNECT');
+            handleConnectionChange();
+        });
 
     
         res.redirect('/ws');
