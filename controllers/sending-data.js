@@ -40,6 +40,7 @@ exports.getConnect = async (req, res, next) => {
 
         client.on('connect', async () => {
             onConnect(client, sensor);
+            await client.unsubscribe(topic);
             await onSubscribe(client, topic);
             onMessage(client, websocket, userId);
         });
