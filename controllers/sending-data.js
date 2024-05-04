@@ -86,6 +86,7 @@ exports.getConnect = async (req, res, next) => {
 
         client.on('reconnect', () => {
             console.log('Reconnecting to MQTT broker');
+            client.removeAllListeners('message');
         });
 
         autheventEmitter.on('userLogout', handleConnectionChange);
