@@ -1,6 +1,7 @@
 const mqtt = require('mqtt');
 
 function mqttConnection(options) {
+    options.reconnectPeriod = 2000;
     return mqtt.connect(options);
 }
 
