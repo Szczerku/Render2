@@ -1,22 +1,22 @@
-
 $(document).ready(async function () {
     const MAX_DATA_COUNT = 25;
+    const sensorColors = [
+        "rgba(255, 0, 255, 0.5)", "rgb(255, 0, 255)",
+        "rgba(0, 255, 0, 0.5)", "rgb(0, 255, 0)",
+        "rgba(0, 0, 255, 0.5)", "rgb(0, 0, 255)",
+        "rgba(255, 165, 0, 0.5)", "rgb(255, 165, 0)",
+        "rgba(75, 122, 130, 0.5)", "rgb(75, 122, 130)",
+        "rgba(255, 69, 0, 0.5)", "rgb(255, 69, 0)",
+        "rgba(123, 104, 238, 0.5)", "rgb(123, 104, 238)",
+        "rgba(255, 20, 147, 0.5)", "rgb(255, 20, 147)"
+    ];
 
-    function configureChart(ctx, label, backgroundColor, borderColor) {
+    function configureChart(ctx) {
         return new Chart(ctx, {
             type: "line",
             data: {
                 labels: [],
-                datasets: [
-                    {
-                        label: label,
-                        fill: true,
-                        backgroundColor: backgroundColor,
-                        borderColor: borderColor,
-                        lineTension: 0.33,
-                        data: []
-                    }
-                ]
+                datasets: []
             },
             options: {
                 plugins: {
@@ -42,10 +42,7 @@ $(document).ready(async function () {
                         ticks: {
                             color: 'white',
                             stepSize: 0.1
-
-                        },
-                        //beginAtZero: true
-                        
+                        }
                     }
                 },
                 responsive: true,
@@ -55,10 +52,25 @@ $(document).ready(async function () {
     }
 
     function addData(lineChart, label, data) {
-        lineChart.data.labels.push(label); //timestamp
-        lineChart.data.datasets.forEach((dataset) => {
-            dataset.data.push(data);
+        lineChart.data.labels.push(label);
+        
+        Object.keys(data).forEach((sensor, index) => {
+            if (!lineChart.data.datasets.some(dataset => dataset.label === sensor)) {
+                const colorIndex = index % sensorColors.length;
+                lineChart.data.datasets.push({
+                    label: sensor,
+                    fill: true,
+                    //backgroundColor: sensorColors[colorIndex * 2],
+                    borderColor: sensorColors[colorIndex * 2 + 1],
+                    lineTension: 0.33,
+                    data: []
+                });
+            }
+            
+            const dataset = lineChart.data.datasets.find(dataset => dataset.label === sensor);
+            dataset.data.push(data[sensor] ? data[sensor].toFixed(1) : null);
         });
+        
         lineChart.update();
     }
 
@@ -71,12 +83,12 @@ $(document).ready(async function () {
     }
 
     function handleSocketData(lineChart, msg) {
-        console.log(`Otrzymano dane z czujnika :: ${msg.date} :: ${msg.value}`);
+        console.log(`Otrzymano dane z czujnika :: ${msg.date} :: ${JSON.stringify(msg.values)}`);
 
         if (lineChart.data.labels.length > MAX_DATA_COUNT) {
             removeFirstData(lineChart);
         }
-        addData(lineChart, msg.date, msg.value);
+        addData(lineChart, msg.date, msg.values);
 
         while (lineChart.data.labels.length > MAX_DATA_COUNT) {
             removeFirstData(lineChart);
@@ -84,32 +96,31 @@ $(document).ready(async function () {
     }
 
     const ctx1 = document.getElementById("lineChart1").getContext("2d");
-    const lineChart1 = configureChart(ctx1, "Voltage 1", "rgba(255, 0, 255, 0.5)", "rgb(255, 0, 255)");
+    const lineChart1 = configureChart(ctx1);
 
-
-    // const ctx2 = document.getElementById("lineChart2").getContext("2d");
-    // const lineChart2 = configureChart(ctx2, "Voltage 2", "rgba(255, 0, 255, 0.5)", "rgb(255,0 , 255)");
-
-    // const ctx3 = document.getElementById("lineChart3").getContext("2d");
-    // const lineChart3 = configureChart(ctx3, "Voltage 3", "rgba(31,53,235,0.5)", "rgb(31, 53, 235)");
-// Pobierz aktualny adres URL
-
-    const ws = new WebSocket('wss://mszczerkovski.onrender.com/ws');   
+    const ws = new WebSocket('wss://mszczerkovski.onrender.com/ws'); 
     
-    
-    // Obsługa zdarzenia 'open', które zostanie wywołane, gdy połączenie z serwerem zostanie nawiązane
     ws.onopen = () => {
         console.log('Connected TO WS SERVER');
     };
     
     ws.onmessage = (event) => {
         console.log('Message from server:', event.data);
-        const data = JSON.parse(event.data.trim()); // Parsowanie danych z JSON
+        const data = JSON.parse(event.data.trim());
         console.log('Message from server:', data);
+        
+        const values = {};
+        Object.keys(data).forEach(key => {
+            if (key.startsWith("Sensor Value")) {
+                values[key] = data[key];
+            }
+        });
+
         var exampleMsg = {
             date: new Date().toLocaleTimeString(),
-            value: parseFloat(data["Sensor Value"]).toFixed(1)
+            values: values
         };
+
         handleSocketData(lineChart1, exampleMsg);
     };
 });
