@@ -36,6 +36,7 @@ $(document).ready(async function () {
                         }
                     },
                     y: {
+                        beginAtZero: true,
                         grid: {
                             display: false
                         },
