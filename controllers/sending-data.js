@@ -31,7 +31,9 @@ exports.getConnect = async (req, res, next) => {
             //username: 'user1',
             username: 'Yousef',
             //password: 'qwerty123456',
-            password: 'Yousef123'
+            password: 'Yousef123',
+            reconnectPeriod: 5000,
+            keepalive: 60
         };
 
 
@@ -39,11 +41,11 @@ exports.getConnect = async (req, res, next) => {
 
         client.on('connect', async () => {
             onConnect(client, sensor);
+            await client.unsubscribe(topic);
             await onSubscribe(client, topic);
+            onMessage(client, websocket, userId);
         });
-
-        onMessage(client, websocket, userId);
-        
+  
         // Flaga śledząca czy zapis jest w trakcie
         let isSaving = false;
 
@@ -65,7 +67,11 @@ exports.getConnect = async (req, res, next) => {
             }
         }
 
-        autheventEmitter.on('userLogout', handleConnectionChange);
+        // Reakcja na rozłączenie
+        client.on('disconnect', () => {
+            console.log('Disconnected from MQTT broker');
+            handleConnectionChange();
+        });
 
         // Reakcja na błąd
         client.on('error', (error) => {
@@ -73,31 +79,13 @@ exports.getConnect = async (req, res, next) => {
             handleConnectionChange();
         });
 
-        // Reakcja na zamknięcie połączenia
-        client.on('close', () => {
-            console.log('Disconnected from MQTT broker-CLOSE');
-            handleConnectionChange();
-        });
-
-        // Reakcja na rozłączenie
-        client.on('disconnect', () => {
-            console.log('Disconnected from MQTT broker-DISCONECT');
-            handleConnectionChange();
-        });
-
         client.on('offline', () => {
-            console.log('Disconnected from MQTT broker-OFFLINE');
-            handleConnectionChange();
-        });
-
-        client.on('end', () => {
-            console.log('Disconnected from MQTT broker-END');
-            handleConnectionChange();
+            console.log('Mqtt client offline');
         });
 
         client.on('reconnect', () => {
-            console.log('Disconnected from MQTT broker-RECONNECT');
-            handleConnectionChange();
+            console.log('Reconnecting to MQTT broker');
+            client.removeAllListeners('message');
         });
 
         const checkConnection = () => {
@@ -110,6 +98,10 @@ exports.getConnect = async (req, res, next) => {
         };
         
         setInterval(checkConnection, 10000);
+
+        autheventEmitter.on('userLogout', handleConnectionChange);
+
+
     
         res.redirect('/ws');
 
