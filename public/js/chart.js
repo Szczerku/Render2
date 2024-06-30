@@ -112,7 +112,7 @@ $(document).ready(async function () {
         
         const values = {};
         Object.keys(data).forEach(key => {
-            if (key.startsWith("Sensor Value")) {
+            if (key.startsWith("Sensor")) {
                 values[key] = data[key];
             }
         });
